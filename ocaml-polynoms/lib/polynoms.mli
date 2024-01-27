@@ -21,15 +21,5 @@ module type Polynom =
     val to_string : polynom -> string
   end
 
-module Make (Coefficient : CoefficientType) =
-  struct
-    type t = Coefficient.t
-    type polynom = Poly of t list
-
-    let of_list l = Poly l
-    let to_string (Poly l) =
-      let
-        to_string_inner l = "text" ^ (Coefficient.to_string (List.hd l))
-      in
-        to_string_inner l
-  end
+module Make (Coefficient : CoefficientType) : Polynom with type t =
+  Coefficient.t
