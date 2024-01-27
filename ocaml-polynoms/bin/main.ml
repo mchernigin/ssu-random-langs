@@ -1,8 +1,11 @@
-open Polynoms
+module IntCoefficient =
+  struct
+    type t = int
+    let to_string = string_of_int
+  end
 
-let () = print_endline "Hello, World!"
-let () =
-  let result = add 2 3 in
-  print_endline (string_of_int result);
-  let result = sub 3 1 in
-  print_endline (string_of_int result)
+module IntPolynom =
+  Polynoms.Make (IntCoefficient)
+
+let p = IntPolynom.of_list [1; 2; 3]
+let () = print_endline (IntPolynom.to_string p)
