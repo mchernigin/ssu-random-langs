@@ -111,7 +111,6 @@ module Make (Coefficient : CoefficientType) = struct
 
   let quad p a b =
     let integral = integrate p in
-    let () = integral |> to_string |> print_endline in
     let value_in_a = value integral a in
     let value_in_b = value integral b in
     Coefficient.add value_in_b (Coefficient.negate value_in_a)

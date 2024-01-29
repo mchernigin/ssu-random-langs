@@ -13,10 +13,25 @@ end
 
 module IntPolynom = Polynoms.Make (IntCoefficient)
 
+module FloatCoefficient = struct
+  type t = float
+
+  let compare = compare
+  let abs = abs_float
+  let add = ( +. )
+  let mul = ( *. )
+  let div = ( /. )
+  let negate = ( ~-. )
+  let to_string = string_of_float
+  let of_float x = x
+end
+
+module FloatPolynom = Polynoms.Make (FloatCoefficient)
+
 let test title f = Alcotest.test_case title `Quick f
 
 let () =
-  Alcotest.run "polynoms"
+  Alcotest.run "IntPolynom"
     [
       ( "IntPolynom.of_list",
         [
@@ -235,5 +250,155 @@ let () =
               let result = IntPolynom.quad p ~-17 87 in
               let expected = 0 in
               Alcotest.(check int) "" expected result);
+        ] );
+      ( "FloatPolynom.of_list",
+        [
+          test "basic" (fun () ->
+              let result =
+                [ 1.3; 2.; 3.1415926 ] |> FloatPolynom.of_list
+                |> FloatPolynom.coefficients
+              in
+              let expected = [ 1.3; 2.; 3.1415926 ] in
+              Alcotest.(check (list (float 1e-10))) "" result expected);
+          test "leading zeros" (fun () ->
+              let result =
+                [ 1.4; 2.54; 3.14; 0.1; 0.000000564; 0. ]
+                |> FloatPolynom.of_list |> FloatPolynom.coefficients
+              in
+              let expected = [ 1.4; 2.54; 3.14; 0.1; 0.000000564 ] in
+              Alcotest.(check (list (float 1e-10))) "" expected result);
+          test "single zero" (fun () ->
+              let result =
+                [ 0. ] |> FloatPolynom.of_list |> FloatPolynom.coefficients
+              in
+              let expected = [ 0. ] in
+              Alcotest.(check (list (float 1e-10))) "" expected result);
+          test "empty" (fun () ->
+              let result =
+                [] |> FloatPolynom.of_list |> FloatPolynom.coefficients
+              in
+              let expected = [ 0. ] in
+              Alcotest.(check (list (float 1e-10))) "" expected result);
+        ] );
+      ( "FloatPolynom.to_string",
+        [
+          test "final boss" (fun () ->
+              let p =
+                FloatPolynom.of_list
+                  [ 0.; 0.; 1.; 0.; 2.98; 0.; -3.141592653; 0.; -0. ]
+              in
+              let result = FloatPolynom.to_string p in
+              let expected = "- 3.141592653x^6 + 2.98x^4 + x^2" in
+              Alcotest.(check string) "incorrect to_string" expected result);
+        ] );
+      ( "FloatPolynom.add",
+        [
+          test "opposite" (fun () ->
+              let p1 =
+                FloatPolynom.of_list [ 1.1124; 2.; -3.141592653; 4.98; -5.12 ]
+              in
+              let p2 =
+                FloatPolynom.of_list [ -1.1124; -2.; 3.141592653; -4.98; 5.12 ]
+              in
+              let result =
+                FloatPolynom.add p1 p2 |> FloatPolynom.coefficients
+              in
+              let expected = [ 0. ] in
+              Alcotest.(check (list (float 1e-10))) "" expected result);
+        ] );
+      ( "FloatPolynom.negate",
+        [
+          test "basic" (fun () ->
+              let p =
+                FloatPolynom.of_list [ 1.1124; 2.; -3.141592653; 4.98; -5.12 ]
+              in
+              let result = FloatPolynom.negate p |> FloatPolynom.coefficients in
+              let expected = [ -1.1124; -2.; 3.141592653; -4.98; 5.12 ] in
+              Alcotest.(check (list (float 1e-10))) "" expected result);
+        ] );
+      ( "FloatPolynom.sub",
+        [
+          test "with negative" (fun () ->
+              let p1 = FloatPolynom.of_list [ 1.2; 2.2; -3.123; 4.9; -5. ] in
+              let p2 = FloatPolynom.of_list [ -7.89; -1.56; 7.3; -3.8; -5. ] in
+              let result =
+                FloatPolynom.sub p1 p2 |> FloatPolynom.coefficients
+              in
+              let expected = [ 9.09; 3.76; -10.423; 8.7 ] in
+              Alcotest.(check (list (float 1e-10))) "" expected result);
+        ] );
+      ( "FloatPolynom.mul",
+        [
+          test "commutative" (fun () ->
+              let p1 =
+                FloatPolynom.of_list
+                  [ 1.13; 0.; -3.1415; 0.; -5.; 0.123; 0.; 342.9; 1. ]
+              in
+              let p2 =
+                FloatPolynom.of_list [ 0.; -1.12; 7.8; 0.; -5.45; 45. ]
+              in
+              let a = FloatPolynom.mul p1 p2 |> FloatPolynom.coefficients in
+              let b = FloatPolynom.mul p2 p1 |> FloatPolynom.coefficients in
+              Alcotest.(check (list (float 1e-10))) "" a b);
+        ] );
+      ( "FloatPolynom.derivate",
+        [
+          test "complex" (fun () ->
+              let p =
+                FloatPolynom.of_list
+                  [ -9.; 5.; 0.; 0.; -1.; -4.; 5.; 2.; 3.; -6. ]
+              in
+              let result =
+                FloatPolynom.derivate p |> FloatPolynom.coefficients
+              in
+              let expected = [ 5.; 0.; 0.; -4.; -20.; 30.; 14.; 24.; -54. ] in
+              Alcotest.(check (list (float 1e-10))) "" expected result);
+          test "single" (fun () ->
+              let p = FloatPolynom.of_list [ 5.12345 ] in
+              let result =
+                FloatPolynom.derivate p |> FloatPolynom.coefficients
+              in
+              let expected = [ 0. ] in
+              Alcotest.(check (list (float 1e-10))) "" expected result);
+          test "zero" (fun () ->
+              let p = FloatPolynom.of_list [ 0. ] in
+              let result =
+                FloatPolynom.derivate p |> FloatPolynom.coefficients
+              in
+              let expected = [ 0. ] in
+              Alcotest.(check (list (float 1e-10))) "" expected result);
+        ] );
+      ( "FloatPolynom.integrate",
+        [
+          test "complex" (fun () ->
+              let p =
+                FloatPolynom.of_list
+                  [ 5.; 0.; 0.; -4.; -20.; 30.; 14.; 24.; -54. ]
+              in
+              let result =
+                FloatPolynom.integrate p |> FloatPolynom.coefficients
+              in
+              let expected = [ 0.; 5.; 0.; 0.; -1.; -4.; 5.; 2.; 3.; -6. ] in
+              Alcotest.(check (list (float 1e-10))) "" expected result);
+          test "zero" (fun () ->
+              let p = FloatPolynom.of_list [ 0. ] in
+              let result =
+                FloatPolynom.integrate p |> FloatPolynom.coefficients
+              in
+              let expected = [ 0. ] in
+              Alcotest.(check (list (float 1e-10))) "" expected result);
+        ] );
+      ( "FloatPolynom.quad",
+        [
+          test "floor" (fun () ->
+              let p = FloatPolynom.of_list [ 0.; 4.; 0.; -4.; 8. ] in
+              let result = FloatPolynom.quad p ~-.5. 5. in
+              let expected = 10_000. in
+              Alcotest.(check (float 1e-10)) "" expected result);
+          test "zero" (fun () ->
+              let p = FloatPolynom.of_list [ 0. ] in
+              let result = FloatPolynom.quad p ~-.17.123 87.1 in
+              let expected = 0. in
+              Alcotest.(check (float 1e-10)) "" expected result);
         ] );
     ]
