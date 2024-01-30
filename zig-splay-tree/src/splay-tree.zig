@@ -53,8 +53,34 @@ pub fn SplayTree(comptime T: type) type {
             ptr.* = node;
         }
 
+        fn subtree_height(ptr: ?*Node, cur_height: u16) u16 {
+            if (ptr) |node| {
+                const left_height = subtree_height(node.left, cur_height + 1);
+                const right_height = subtree_height(node.right, cur_height + 1);
+                return @max(left_height, right_height);
+            } else {
+                return cur_height;
+            }
+        }
+
         pub fn height(self: *Self) u16 {
-            _ = self;
+            return subtree_height(self.root, 0);
+        }
+
+        fn subtree_contains(ptr: ?*Node, value: T) bool {
+            if (ptr) |node| {
+                if (node.data == value) {
+                    return true;
+                }
+                return subtree_contains(node.left, value) or
+                    subtree_contains(node.right, value);
+            } else {
+                return false;
+            }
+        }
+
+        pub fn contains(self: *Self, value: T) bool {
+            return subtree_contains(self.root, value);
         }
     };
 }
